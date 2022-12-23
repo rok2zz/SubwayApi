@@ -17,21 +17,21 @@
 				<div v-for="(item, index) in transferLine" :key="index" :class="$style.line">
 					<span :class="$style.name">{{ getLineName(item) }}</span>
 					<div :class="$style.location">
-						<div v-for="(item2, index2) in info" :key="index2" :class="[getTrainStyle(item, item2), $style.train]">
+						<div v-for="(item2, index2) in info" :key="index2" :style="getTrainStyle(item, item2)" :class="$style.train">
 							<div v-if="item2.updnLine == '하행'">
 								<div :class="$style.info">
-									{{ item2.arvlMsg2 }}
+									{{ getTrainLocation(item2) }}
 								</div>
 								<div :class="[$style.name, 'general-font-color-btn', 'line-color-level-' + item]">
-									<span :class="$style.up">&lt; {{ item2.btrainNo }}</span>
+									<span :class="$style.up">&lt; {{ getTrainNumber(item2) }}</span>
 								</div>
 							</div>
 							<div v-else>
 								<div :class="[$style.name, 'general-font-color-btn','line-color-level-' + item]">
-									<span :class="$style.down">{{ item2.btrainNo }} ></span>
+									<span :class="$style.down">{{ getTrainNumber(item2) }} ></span>
 								</div>
 								<div :class="$style.info">
-									{{ item2.arvlMsg2 }}
+									{{ getTrainLocation(item2) }}
 								</div>
 							</div>
 						</div>
@@ -73,6 +73,8 @@
 		border-width: 2px;
 		border-style: solid;
 		border-radius: 7px;
+
+		overflow: hidden;
 
 		> .title {
 			padding: 12px 0px 8px 8px;
@@ -132,8 +134,6 @@
 					position: relative;
 
 					> .train {
-						width: 50px;
-
 						position: absolute;
 
 						font-size: 10px;
@@ -144,26 +144,10 @@
 						> div {
 
 							> .info {
+								max-width: 70px;
 							}
-
 							> .name {
-								width: 100%;
 								height: 20px;
-
-								position: relative;
-
-
-								> .up {
-									position: absolute;
-									top: 3px;
-									left: 7px;
-								}
-
-								> .down {
-									position: absolute;
-									top: 3px;
-									right: 7px;
-								}
 							}		
 						}
 					}
@@ -204,14 +188,18 @@ export default class App extends Vue {
 	}
 
 	mounted() {
-		this.loadApi("서울")
+		this.init()
+	}
 
+	init() {
 		this.$router.push({query: {station: "서울"}});
+		this.loadApi("서울")
+		this.reloadInfo()
 	}
 
 	loadApi(station: string) {
 		var vm = this
-		axios.get('http://swopenapi.seoul.go.kr/api/subway/%EC%A7%80%ED%95%98%EC%B2%A0API%ED%82%A4/json/realtimeStationArrival/0/20/' + station)
+		axios.get('http://swopenapi.seoul.go.kr/api/subway/6a6b5a424f726f6b33374d50575169/json/realtimeStationArrival/0/20/' + station)
 			.then(function(response) {
 				vm.info = response.data.realtimeArrivalList
 				vm.transferLine = vm.info[0]?.subwayList.split(",")
@@ -249,19 +237,26 @@ export default class App extends Vue {
 	}
 
 	updateStationName() {
-		if (this.$route.query.station == this.stationName) return
+		if (this.$route.query.station == this.stationName) {
+			this.loadApi(this.queryName)
+			return
+		} 
 
 		this.getQueryName()
 
 		if (this.stationName == "") {
-			if (this.$route.query.station == "서울") return 
+			if (this.$route.query.station == "서울") {
+				this.queryName = "서울"
+				this.loadApi(this.queryName)
+
+				return 
+			} 
 			
 			this.queryName = "서울"
 			this.$router.push({query: {station: "서울"}});
 
 			return
 		}
-
 		this.$router.push({query: {station: this.stationName}});
 	}
 
@@ -297,20 +292,161 @@ export default class App extends Vue {
 		var style = ""
 
 		if (lineCode != item.subwayId) {
-			style += "display: none;" + " "
+			style += "display: none; "
 		}
 
 		if (item.updnLine == "하행") {
-			style += "bottom: 55px;" + " "
+			style += this.getDownStyle(item)
+		} else if (item.updnLine == "상행") {
+			style += this.getUpStyle(item)
 		}
-
-		if (item.arvlMsg2.split("")[0] == "전") {
-			style += "left: 50%;" + " "
-		}
-
 
 		return style
 	}
+
+	getUpStyle(item: train): string  {
+		var style = "top: 40px; "	
+
+		switch(this.getTrainLocation(item)) {
+			case "전역 진입":
+				style += "left: 25%; "
+				break
+			case "전역 도착":
+				style += "left: 30%; "
+				break
+			case "전역 출발":
+				style += "left: 35%; "
+				break
+			case "진입": 
+				style += "left: 40%; "
+				break
+			case "도착":
+				style += "left: 45%; "
+				break
+			case "출발":
+				style += "left: 50%; "
+				break
+		}
+
+		var arr = this.getTrainLocation(item).split("")
+
+		if (arr[1] == "분") {
+			style += "left: calc(45% - " + arr[0] + " * 4%);"
+		} else if (arr[2] == "분") {
+			style += "left: calc(45% - " + arr[0] + arr[1] + " * 4%);"
+		} else if (arr[1] == "번") {
+			style += "left: calc(45% - " + arr[0] + " * 10%); "
+		} else if (arr[2] == "번") {
+			style += "left: calc(45% - " + arr[0] + arr[1] + " * 10%);"
+		}
+
+		return style
+	}
+
+	getDownStyle(item: train): string {
+		var style = "bottom: 40px; "
+		
+		switch(this.getTrainLocation(item)) {
+			case "전역 진입":
+				style += "right: 25%; "
+				break
+			case "전역 도착":
+				style += "right: 30%; "
+				break
+			case "전역 출발":
+				style += "right: 35%; "
+				break
+			case "진입": 
+				style += "right: 40%; "
+				break
+			case "도착":
+				style += "right: 45%; "
+				break
+			case "출발":
+				style += "right: 50%; "
+				break
+		}
+
+		var arr = this.getTrainLocation(item).split("")
+
+		if (arr[1] == "분") {
+			style += "right: calc(45% - " + arr[0] + " * 4%);"
+		} else if (arr[2] == "분") {
+			style += "right: calc(45% - " + arr[0] + arr[1] + " * 4%);"
+		} else if (arr[1] == "번") {
+			style += "right: calc(45% - " + arr[0] + " * 10%); "
+		} else if (arr[2] == "번") {
+			style += "right: calc(45% - " + arr[0] + arr[1] + " * 10%);"
+		}
+
+		return style
+	}
+
+	getTrainLocation(item: train): string {
+		var location = item.arvlMsg2
+
+		switch(location) {
+			case this.queryName + " 진입":
+				location = "진입"
+				return location
+			case this.queryName + " 도착":
+				location = "도착"
+				return location
+			case this.queryName + " 출발":
+				location = "출발"
+				return location
+			case "전역 진입":
+				return location
+			case "전역 도착":
+				return location
+			case "전역 출발":
+				return location
+		}
+
+		location = this.getStationDelay(location)
+
+		return location
+	}
+
+	getStationDelay(location: string): string {
+		var delay = location.split("")
+		var str = ""
+
+		if (delay[0] == "[") {
+			if (delay[2] == "]") {
+				str = delay[1]
+			} else {
+				str = delay[1] + delay[2]
+			}
+			return str + "번째 전역"
+		}
+
+		if (delay[1] == "분") {
+			str = delay[0]
+
+			return str + "분 후 도착"
+		} else if (delay[2] == "분") {
+			str = delay[0] + delay[1]
+
+			return str + "분 후 도착"
+		}
+
+		return str
+	}
+
+	getTrainNumber(item: train): string {
+		return item.btrainSttus == "급행" ? item.btrainNo + "(" + "급행" + ")" : item.btrainNo
+	}
+
+	reloadInfo() {
+		var vm = this
+
+		var reload = setInterval(function() {
+			vm.loadApi(vm.queryName)
+		}, 30000);
+	}
+
+	
 
 	@Watch('$route.query')
 	updateSubway() {
