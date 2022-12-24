@@ -180,20 +180,15 @@ export default class App extends Vue {
 	zeroNum: number = 0
 	transferLine: string[] = []
 	stationName: string = ""
-	queryName: string = ""
+	queryName: string = "서울"
 	info: train[] = [] as train[]
 
 	created() {
 		this.loadApi("서울")
+		this.$router.push({query: {station: "서울"}});
 	}
 
 	mounted() {
-		this.init()
-	}
-
-	init() {
-		this.$router.push({query: {station: "서울"}});
-		this.loadApi("서울")
 		this.reloadInfo()
 	}
 
