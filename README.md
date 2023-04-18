@@ -1,4 +1,6 @@
-# study1
+# SubwayApi
+
+Seoul SubwayApi with Vue.js, TypeScript and Api(axios)
 
 ## Project setup
 ```
