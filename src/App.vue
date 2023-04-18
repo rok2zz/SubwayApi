@@ -17,21 +17,21 @@
 				<div v-for="(item, index) in transferLine" :key="index" :class="$style.line">
 					<span :class="$style.name">{{ getLineName(item) }}</span>
 					<div :class="$style.location">
-						<div v-for="(item2, index2) in info" :key="index2" :style="getTrainStyle(item, item2)" :class="$style.train">
-							<div v-if="item2.updnLine == '하행'">
+						<div v-for="(trainItem, trainIndex) in info" :key="'train' + trainIndex" :style="getTrainStyle(item, trainItem)" :class="$style.train">
+							<div v-if="trainItem.updnLine == '하행'">
 								<div :class="$style.info">
-									{{ getTrainLocation(item2) }}
+									{{ getTrainLocation(trainItem) }}
 								</div>
 								<div :class="[$style.name, 'general-font-color-btn', 'line-color-level-' + item]">
-									<span :class="$style.up">&lt; {{ getTrainNumber(item2) }}</span>
+									<span :class="$style.up">&lt; {{ getTrainNumber(trainItem) }}</span>
 								</div>
 							</div>
 							<div v-else>
 								<div :class="[$style.name, 'general-font-color-btn','line-color-level-' + item]">
-									<span :class="$style.down">{{ getTrainNumber(item2) }} ></span>
+									<span :class="$style.down">{{ getTrainNumber(trainItem) }} ></span>
 								</div>
 								<div :class="$style.info">
-									{{ getTrainLocation(item2) }}
+									{{ getTrainLocation(trainItem) }}
 								</div>
 							</div>
 						</div>
@@ -50,10 +50,12 @@
 <style lang="scss">
 @import '@/assets/scss/theme.scss';
 
-* {
+body {
 	margin: 0;
 	padding: 0;
+}
 
+* {
 	box-sizing: border-box;
 }
 </style>
@@ -200,7 +202,7 @@ export default class App extends Vue {
 				vm.transferLine = vm.info[0]?.subwayList.split(",")
 			})
 			.catch(function(error) {
-				alert('error')
+				alert('API Error')
 			})
 	}
 
@@ -221,11 +223,11 @@ export default class App extends Vue {
 		var name = this.stationName.split("")
 
 		if (name[name.length - 1] == "역") {
-			for (var i = 0; i<name.length - 1; i++) {
+			for (var i = 0; i < name.length - 1; i++) {
 				this.queryName += name[i]
 			}
 		} else {
-			for (var i = 0; i<name.length; i++) {
+			for (var i = 0; i < name.length; i++) {
 				this.queryName += name[i]
 			}
 		}
